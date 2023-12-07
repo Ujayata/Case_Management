@@ -26,11 +26,11 @@ import {
   WitnessId,
 } from "./types";
 
-let Clients = StableBTreeMap<ClientId, Client>(text, Client, 6);
-let Lawyers = StableBTreeMap<LawyerId, Lawyer>(text, Lawyer, 2);
-let Cases = StableBTreeMap<CaseId, Case>(text, Case, 3);
-let Witnesses = StableBTreeMap<WitnessId, Witness>(text, Witness, 4);
-let ClientCase = StableBTreeMap<ClientId, Vec<CaseId>>(text, Vec(text), 5);
+let Clients = StableBTreeMap<ClientId, Client>(text, Client, 7);
+let Lawyers = StableBTreeMap<LawyerId, Lawyer>(text, Lawyer, 8);
+let Cases = StableBTreeMap<CaseId, Case>(text, Case, 9);
+let Witnesses = StableBTreeMap<WitnessId, Witness>(text, Witness, 10);
+let ClientCase = StableBTreeMap<ClientId, Vec<CaseId>>(text, Vec(text), 11);
 
 export default Canister({
   addClient: update([ClientPayload], Client, (payload) => {
@@ -81,8 +81,8 @@ export default Canister({
       Documents: payload.Documents,
       Timeline: payload.Timeline,
       State: "Pending",
-      LawyerId: None,
-      ClientId: None,
+      LawyerId: '',
+      ClientId: '',
       WitnessIds: None,
     };
     Cases.insert(caseId, caseData);
@@ -117,32 +117,42 @@ export default Canister({
     return Cases.values();
   }),
 
-  assignLawyerToCase: update([CaseId, LawyerId], Void, (caseId, lawyerId) => {
-    let caseData = Cases.get(caseId);
-    if (caseData) {
-      caseData.LawyerId = lawyerId;
-      Cases.insert(caseId, caseData);
+  assignLawyerToCase: update([CaseId, LawyerId], Case, (caseId, lawyerId) => {
+    const caseDataOpt = Cases.get(caseId);
+    const lawyerOpt = Lawyers.get(lawyerId);
+
+    if('None' in caseDataOpt || 'None' in lawyerOpt) {
+      throw new Error('Failed to assign case to the lawyer');
     }
-    return;
+    const caseData: Case = caseDataOpt.Some;
+    const lawyer: Lawyer = lawyerOpt.Some;
+
+    const caseUpdated: Case = {
+      ...caseData,
+      LawyerId: lawyer.id
+    }
+    Cases.insert(caseData.id, caseUpdated)
+    return caseData;
+    
   }),
 
-  updateCaseState: update([CaseId, text], Void, (caseId, newState) => {
-    let caseData = Cases.get(caseId);
-    if (caseData) {
-      caseData.State = newState;
-      Cases.insert(caseId, caseData);
+  updateCaseState: update([CaseId, text], Case , (caseId, newState) => {
+    const caseDataOpt = Cases.get(caseId);
+    if ('None' in caseDataOpt) {
+      throw new Error('Case does not exist');
     }
-    return;
+    const caseData: Case = caseDataOpt.Some;
+    const newCase: Case = {
+      ...caseData, 
+      State: newState,
+
+    }
+    Cases.insert(caseData.id, newCase);
+
+    return newCase;
   }),
 
-  deleteCase: update([CaseId], Void, (caseId) => {
-    Cases.delete(caseId);
-    ClientCase.values().forEach((caseIds: Vec<CaseId>) => {
-      let index = caseIds.indexOf(caseId);
-      if (index !== -1) {
-        caseIds.splice(index, 1);
-      }
-    });
-    return;
+  deleteCase: update([CaseId], Opt(Case), (caseId) => {
+    return Cases.remove(caseId);
   }),
 });
