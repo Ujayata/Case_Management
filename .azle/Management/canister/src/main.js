@@ -98542,16 +98542,6 @@ var AzleText = class {
     }
 };
 var text = AzleText;
-// node_modules/azle/src/lib/candid/types/primitive/void.ts
-var AzleVoid = class {
-    static getIdl() {
-        return [];
-    }
-    constructor(){
-        this._azleKind = "AzleVoid";
-    }
-};
-var Void = AzleVoid;
 // node_modules/azle/src/lib/candid/serde/visitors/decode_visitor.ts
 var DecodeVisitor = class extends idl_exports.Visitor {
     visitService(t, data) {
@@ -99634,8 +99624,8 @@ var Case = Record2({
     Documents: Vec2(text),
     Timeline: text,
     State: text,
-    LawyerId: Opt2(LawyerId),
-    ClientId: Opt2(ClientId),
+    LawyerId: text,
+    ClientId: text,
     WitnessIds: Opt2(Vec2(WitnessId))
 });
 var CasePayload = Record2({
@@ -99656,11 +99646,11 @@ var WitnessPayload = Record2({
     Testimony: text
 });
 // src/index.ts
-var Clients = StableBTreeMap(text, Client, 6);
-var Lawyers = StableBTreeMap(text, Lawyer, 2);
-var Cases = StableBTreeMap(text, Case, 3);
-var Witnesses = StableBTreeMap(text, Witness, 4);
-var ClientCase = StableBTreeMap(text, Vec2(text), 5);
+var Clients = StableBTreeMap(text, Client, 7);
+var Lawyers = StableBTreeMap(text, Lawyer, 8);
+var Cases = StableBTreeMap(text, Case, 9);
+var Witnesses = StableBTreeMap(text, Witness, 10);
+var ClientCase = StableBTreeMap(text, Vec2(text), 11);
 var src_default = Canister({
     addClient: update([
         ClientPayload
@@ -99714,8 +99704,8 @@ var src_default = Canister({
             Documents: payload.Documents,
             Timeline: payload.Timeline,
             State: "Pending",
-            LawyerId: None,
-            ClientId: None,
+            LawyerId: "",
+            ClientId: "",
             WitnessIds: None
         };
         Cases.insert(caseId, caseData);
@@ -99752,36 +99742,39 @@ var src_default = Canister({
     assignLawyerToCase: update([
         CaseId,
         LawyerId
-    ], Void, (caseId, lawyerId)=>{
-        let caseData = Cases.get(caseId);
-        if (caseData) {
-            caseData.LawyerId = lawyerId;
-            Cases.insert(caseId, caseData);
+    ], Case, (caseId, lawyerId)=>{
+        const caseDataOpt = Cases.get(caseId);
+        const lawyerOpt = Lawyers.get(lawyerId);
+        if ("None" in caseDataOpt || "None" in lawyerOpt) {
+            throw new Error("Failed to assign case to the lawyer");
         }
-        return;
+        const caseData = caseDataOpt.Some;
+        const lawyer = lawyerOpt.Some;
+        const caseUpdated = _extends({}, caseData, {
+            LawyerId: lawyer.id
+        });
+        Cases.insert(caseData.id, caseUpdated);
+        return caseData;
     }),
     updateCaseState: update([
         CaseId,
         text
-    ], Void, (caseId, newState)=>{
-        let caseData = Cases.get(caseId);
-        if (caseData) {
-            caseData.State = newState;
-            Cases.insert(caseId, caseData);
+    ], Case, (caseId, newState)=>{
+        const caseDataOpt = Cases.get(caseId);
+        if ("None" in caseDataOpt) {
+            throw new Error("Case does not exist");
         }
-        return;
+        const caseData = caseDataOpt.Some;
+        const newCase = _extends({}, caseData, {
+            State: newState
+        });
+        Cases.insert(caseData.id, newCase);
+        return newCase;
     }),
     deleteCase: update([
         CaseId
-    ], Void, (caseId)=>{
-        Cases.delete(caseId);
-        ClientCase.values().forEach((caseIds)=>{
-            let index = caseIds.indexOf(caseId);
-            if (index !== -1) {
-                caseIds.splice(index, 1);
-            }
-        });
-        return;
+    ], Opt2(Case), (caseId)=>{
+        return Cases.remove(caseId);
     })
 });
 // <stdin>

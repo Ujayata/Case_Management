@@ -75,8 +75,8 @@ export const Case = Record({
   Documents: Vec(text),
   Timeline: text,
   State: text,
-  LawyerId: Opt(LawyerId),
-  ClientId: Opt(ClientId),
+  LawyerId: text,
+  ClientId: text,
   WitnessIds: Opt(Vec(WitnessId)),
 });
 export type Case = typeof Case;

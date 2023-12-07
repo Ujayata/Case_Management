@@ -1,13 +1,13 @@
 service: () -> {
-    addCase: (record {Description:text; Documents:vec text; Timeline:text; Case_name:text}) -> (record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:opt text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:opt text});
+    addCase: (record {Description:text; Documents:vec text; Timeline:text; Case_name:text}) -> (record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:text});
     addClient: (record {Email:text; Surname:text; Name:text; Nationality:text; Phonenumber:text; Gender:text; Marital_Status:text; Occupation:text}) -> (record {id:text; Email:text; Surname:text; Name:text; Nationality:text; Date_Of_Birth:nat64; Phonenumber:text; datJoined:nat64; Gender:text; Marital_Status:text; Occupation:text});
     addLawyer: (record {Email:text; Surname:text; Name:text; Nationality:text; Experience:text; Phonenumber:text; Title:text; Case_Category:text}) -> (record {id:text; Email:text; Case_Won:nat64; Surname:text; Name:text; createdAt:nat64; Nationality:text; Experience:text; Phonenumber:text; Title:text; Case_Category:text; Case_Lost:nat64});
     addWitness: (record {Fullname:text; national_id:text; Testimony:text}) -> (record {id:text; Fullname:text; national_id:text; Testimony:text});
-    assignLawyerToCase: (text, text) -> ();
-    deleteCase: (text) -> ();
-    getAllCases: () -> (vec record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:opt text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:opt text}) query;
+    assignLawyerToCase: (text, text) -> (record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:text});
+    deleteCase: (text) -> (opt record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:text});
+    getAllCases: () -> (vec record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:text}) query;
     getAllClients: () -> (vec record {id:text; Email:text; Surname:text; Name:text; Nationality:text; Date_Of_Birth:nat64; Phonenumber:text; datJoined:nat64; Gender:text; Marital_Status:text; Occupation:text}) query;
-    getCase: (text) -> (opt record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:opt text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:opt text}) query;
+    getCase: (text) -> (opt record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:text}) query;
     getClient: (text) -> (opt record {id:text; Email:text; Surname:text; Name:text; Nationality:text; Date_Of_Birth:nat64; Phonenumber:text; datJoined:nat64; Gender:text; Marital_Status:text; Occupation:text}) query;
-    updateCaseState: (text, text) -> ();
+    updateCaseState: (text, text) -> (record {id:text; State:text; UpdatedAt:opt nat64; LawyerId:text; Description:text; WitnessIds:opt vec text; Documents:vec text; Timeline:text; CreatedAt:nat64; Case_name:text; ClientId:text});
 }
