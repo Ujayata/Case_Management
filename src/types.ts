@@ -3,8 +3,17 @@ import {
   nat64,
   Vec,
   Opt,
-  Record
+  Record,
+  Date,
+  DateTime,
 } from "azle";
+
+type Document = {
+  name: text;
+  size: nat64;
+  mimeType: text;
+  data: string; // Replace with appropriate data type based on your needs
+};
 
 export const ClientId = text;
 export const LawyerId = text;
@@ -13,93 +22,93 @@ export const WitnessId = text;
 
 export const Client = Record({
   id: ClientId,
-  Name: text,
-  Surname: text,
-  Phonenumber: text,
-  Email: text,
-  Gender: text,
-  Date_Of_Birth: nat64,
-  Occupation: text,
-  Marital_Status: text,
-  Nationality: text,
-  datJoined: nat64,
+  name: text,
+  surname: text,
+  phoneNumber: text,
+  email: text,
+  gender: text,
+  dateOfBirth: Date,
+  occupation: text,
+  maritalStatus: text,
+  nationality: text,
+  dateJoined: nat64,
 });
 export type Client = typeof Client;
 
 export const ClientPayload = Record({
-  Name: text,
-  Surname: text,
-  Phonenumber: text,
-  Email: text,
-  Gender: text,
-  Occupation: text,
-  Marital_Status: text,
-  Nationality: text,
+  name: text,
+  surname: text,
+  phoneNumber: text,
+  email: text,
+  gender: text,
+  occupation: text,
+  maritalStatus: text,
+  nationality: text,
 });
 export type ClientPayload = typeof ClientPayload;
 
 export const Lawyer = Record({
   id: LawyerId,
-  Title: text,
-  Name: text,
-  Surname: text,
-  Phonenumber: text,
-  Email: text,
-  Case_Category: text,
-  Case_Won: nat64,
-  Case_Lost: nat64,
-  Experience: text,
-  Nationality: text,
-  createdAt: nat64,
+  title: text,
+  name: text,
+  surname: text,
+  phoneNumber: text,
+  email: text,
+  caseCategory: text,
+  casesWon: nat64,
+  casesLost: nat64,
+  experience: text,
+  nationality: text,
+  createdAt: DateTime,
 });
 export type Lawyer = typeof Lawyer;
 
 export const LawyerPayload = Record({
-  Title: text,
-  Name: text,
-  Surname: text,
-  Phonenumber: text,
-  Email: text,
-  Case_Category: text,
-  Experience: text,
-  Nationality: text,
+  title: text,
+  name: text,
+  surname: text,
+  phoneNumber: text,
+  email: text,
+  caseCategory: text,
+  experience: text,
+  nationality: text,
 });
 export type LawyerPayload = typeof LawyerPayload;
 
 export const Case = Record({
   id: CaseId,
-  Case_name: text,
-  CreatedAt: nat64,
-  UpdatedAt: Opt(nat64),
-  Description: text,
-  Documents: Vec(text),
-  Timeline: text,
-  State: text,
-  LawyerId: text,
-  ClientId: text,
-  WitnessIds: Opt(Vec(WitnessId)),
+  name: text,
+  createdAt: DateTime,
+  updatedAt: Opt(DateTime),
+  description: text,
+  documents: Vec<Document>,
+  timeline: text,
+  state: text,
+  lawyerId: LawyerId,
+  clientId: ClientId,
+  witnesses: Vec<Witness>, // Replaced WitnessIds with an array of Witness objects
 });
 export type Case = typeof Case;
 
 export const CasePayload = Record({
-  Case_name: text,
-  Description: text,
-  Documents: Vec(text),
-  Timeline: text,
+  name: text,
+  description: text,
+  documents: Vec<Document>, // Replaced Vec(text) with Vec<Document> for better data integrity
+  timeline: text,
 });
 export type CasePayload = typeof CasePayload;
 
 export const Witness = Record({
   id: WitnessId,
-  Fullname: text,
-  national_id: text,
-  Testimony: text,
+  fullName: text,
+  nationalId: text,
+  testimony: text,
 });
 export type Witness = typeof Witness;
 
 export const WitnessPayload = Record({
-  Fullname: text,
-  national_id: text,
-  Testimony: text,
+  fullName: text,
+  nationalId: text,
+  testimony: text,
 });
 export type WitnessPayload = typeof WitnessPayload;
