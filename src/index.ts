@@ -1,40 +1,27 @@
 import {
   query,
   update,
-  StableBTreeMap,
+  BTreeMap,
   Vec,
   Opt,
   None,
   text,
-  Void,
   Canister,
   ic,
+  Principal,
 } from "azle";
 import { v4 as uuidv4 } from "uuid";
-import {
-  Client,
-  ClientPayload,
-  Lawyer,
-  LawyerPayload,
-  Case,
-  CasePayload,
-  Witness,
-  WitnessPayload,
-  ClientId,
-  LawyerId,
-  CaseId,
-  WitnessId,
-} from "./types";
+import { Client, ClientPayload, Lawyer, LawyerPayload, Case, CasePayload, Witness, WitnessPayload, ClientId, LawyerId, CaseId, WitnessId } from "./types";
 
-let Clients = StableBTreeMap<ClientId, Client>(text, Client, 7);
-let Lawyers = StableBTreeMap<LawyerId, Lawyer>(text, Lawyer, 8);
-let Cases = StableBTreeMap<CaseId, Case>(text, Case, 9);
-let Witnesses = StableBTreeMap<WitnessId, Witness>(text, Witness, 10);
-let ClientCase = StableBTreeMap<ClientId, Vec<CaseId>>(text, Vec(text), 11);
+let clients = BTreeMap<ClientId, Client>(text, Client);
+let lawyers = BTreeMap<LawyerId, Lawyer>(text, Lawyer);
+let cases = BTreeMap<CaseId, Case>(text, Case);
+let witnesses = BTreeMap<WitnessId, Witness>(text, Witness);
+let clientCases = BTreeMap<ClientId, Vec<CaseId>>(text, Vec(text));
 
 export default Canister({
   addClient: update([ClientPayload], Client, (payload) => {
-    let client: Client = {
+    const client: Client = {
       id: uuidv4(),
       Name: payload.Name,
       Surname: payload.Surname,
@@ -45,14 +32,14 @@ export default Canister({
       Occupation: payload.Occupation,
       Marital_Status: payload.Marital_Status,
       Nationality: payload.Nationality,
-      datJoined: ic.time(),
+      DateJoined: ic.time(),
     };
-    Clients.insert(client.id, client);
+    clients.insert(client.id, client);
     return client;
   }),
 
   addLawyer: update([LawyerPayload], Lawyer, (payload) => {
-    let lawyer: Lawyer = {
+    const lawyer: Lawyer = {
       id: uuidv4(),
       Title: payload.Title,
       Name: payload.Name,
@@ -66,13 +53,13 @@ export default Canister({
       Nationality: payload.Nationality,
       createdAt: ic.time(),
     };
-    Lawyers.insert(lawyer.id, lawyer);
+    lawyers.insert(lawyer.id, lawyer);
     return lawyer;
   }),
 
   addCase: update([CasePayload], Case, (payload) => {
-    let caseId = uuidv4();
-    let caseData: Case = {
+    const caseId = uuidv4();
+    const caseData: Case = {
       id: caseId,
       Case_name: payload.Case_name,
       CreatedAt: ic.time(),
@@ -81,78 +68,90 @@ export default Canister({
       Documents: payload.Documents,
       Timeline: payload.Timeline,
       State: "Pending",
-      LawyerId: '',
-      ClientId: '',
+      LawyerId: None,
+      ClientId: None,
       WitnessIds: None,
     };
-    Cases.insert(caseId, caseData);
+    cases.insert(caseId, caseData);
     return caseData;
-   }),   
-   
+  }),
 
   addWitness: update([WitnessPayload], Witness, (payload) => {
-    let witness: Witness = {
+    const witness: Witness = {
       id: uuidv4(),
       Fullname: payload.Fullname,
       national_id: payload.national_id,
       Testimony: payload.Testimony,
     };
-    Witnesses.insert(witness.id, witness);
+    witnesses.insert(witness.id, witness);
     return witness;
   }),
 
   getClient: query([ClientId], Opt(Client), (id) => {
-    return Clients.get(id);
+    return clients.get(id);
   }),
 
   getAllClients: query([], Vec(Client), () => {
-    return Clients.values();
+    return clients.values();
   }),
 
   getCase: query([CaseId], Opt(Case), (id) => {
-    return Cases.get(id);
+    return cases.get(id);
   }),
 
   getAllCases: query([], Vec(Case), () => {
-    return Cases.values();
+    return cases.values();
   }),
 
   assignLawyerToCase: update([CaseId, LawyerId], Case, (caseId, lawyerId) => {
-    const caseDataOpt = Cases.get(caseId);
-    const lawyerOpt = Lawyers.get(lawyerId);
+    const caseDataOpt = cases.get(caseId);
+    const lawyerOpt = lawyers.get(lawyerId);
 
-    if('None' in caseDataOpt || 'None' in lawyerOpt) {
+    if (caseDataOpt.isNone() || lawyerOpt.isNone()) {
       throw new Error('Failed to assign case to the lawyer');
     }
-    const caseData: Case = caseDataOpt.Some;
-    const lawyer: Lawyer = lawyerOpt.Some;
+
+    const caseData: Case = caseDataOpt.unwrap();
+    const lawyer: Lawyer = lawyerOpt.unwrap();
+
+    // Access control: Check if the caller is authorized to assign the lawyer to the case
+    const caller = Principal.fromActor(ic.agent);
+    if (caseData.ClientId.isSome() && !clientCases.get(caseData.ClientId.unwrap()).contains(caseId)) {
+      throw new Error('Unauthorized: Caller is not the client associated with the case.');
+    }
 
     const caseUpdated: Case = {
       ...caseData,
-      LawyerId: lawyer.id
-    }
-    Cases.insert(caseData.id, caseUpdated)
+      LawyerId: Some(lawyer.id),
+    };
+    cases.insert(caseData.id, caseUpdated);
     return caseData;
-    
   }),
 
   updateCaseState: update([CaseId, text], Case , (caseId, newState) => {
-    const caseDataOpt = Cases.get(caseId);
-    if ('None' in caseDataOpt) {
+    const caseDataOpt = cases.get(caseId);
+    if (caseDataOpt.isNone()) {
       throw new Error('Case does not exist');
     }
-    const caseData: Case = caseDataOpt.Some;
+
+    const caseData: Case = caseDataOpt.unwrap();
+
+    // Access control: Check if the caller is authorized to update the case state
+    const caller = Principal.fromActor(ic.agent);
+    if (caseData.ClientId.isSome() && !clientCases.get(caseData.ClientId.unwrap()).contains(caseId)) {
+      throw new Error('Unauthorized: Caller is not the client associated with the case.');
+    }
+
     const newCase: Case = {
       ...caseData, 
       State: newState,
-
-    }
-    Cases.insert(caseData.id, newCase);
+    };
+    cases.insert(caseData.id, newCase);
 
     return newCase;
   }),
 
   deleteCase: update([CaseId], Opt(Case), (caseId) => {
-    return Cases.remove(caseId);
+    return cases.remove(caseId);
   }),
 });
